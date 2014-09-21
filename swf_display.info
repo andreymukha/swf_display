@@ -1,0 +1,9 @@
+name = SWF Display
+description = "SWF File display formatter"
+package = SWF Display
+core = 7.x
+dependencies[] = field
+dependencies[] = file
+dependencies[] = video_filter
+dependencies[] = bueditor
+version = 7.x-1.x-dev

@@ -1,0 +1,129 @@
+<?php
+
+/**
+ * Implements hook_theme().
+ */
+function swf_display_theme() {
+  return array(
+    // file.module.
+    'swf_display' => array(
+      'variables' => array('file' => NULL),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function swf_display_field_formatter_info() {
+  return array(
+    'swf_display_default' => array(
+      'label' => t('SWF Display'),
+      'field types' => array('file'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function swf_display_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'swf_display_default':
+      foreach ($items as $delta => $item) {
+        $element[$delta] = array(
+          '#theme' => 'swf_display',
+          '#file' => (object) $item,
+        );
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Returns HTML swf display
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - file: A file object which will be displayed
+ *
+ * @ingroup themeable
+ */
+function theme_swf_display($variables) {
+  $file = $variables['file'];
+	
+	if($file->filemime != 'application/x-shockwave-flash'){
+		return t('Sorry, cannot display this file. Is it really an SWF file?');	
+	}
+	
+  $url = file_create_url($file->uri);
+	
+	// CAUTION! Code below might not work with some SWFs and return incorrect or empty sizes.
+	$swf_info = getimagesize($url);
+	//dpm($swf_info);
+	$swf_width = 450; //isset($swf_info[0]) ? $swf_info[0] : '200';
+	$swf_height = 400; //isset($swf_info[1]) ? $swf_info[1] : '200';
+	
+	
+	// Generate HTML to display a flash object.
+	// TODO: use template probably?	
+  $output = '<object id="FlashID" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="'.$swf_width. '" height="'.$swf_height. '">
+ <param name="movie" value="'.$url. '" />
+ <param name="quality" value="high" />
+ <param name="wmode" value="opaque" />
+ <param name="swfversion" value="6.0.65.0" />
+ <!-- This param tag prompts users with Flash Player 6.0 r65 and higher to download the latest version of Flash Player. Delete it if you don\'t want users to see the prompt. -->
+ <param name="expressinstall" value="Scripts/expressInstall.swf" />
+ <!-- Next object tag is for non-IE browsers. So hide it from IE using IECC. -->
+ <!--[if !IE]>-->
+ <object type="application/x-shockwave-flash" data="'.$url. '" width="'.$swf_width. '" height="'.$swf_height. '">
+  <!--<![endif]-->
+  <param name="quality" value="high" />
+  <param name="wmode" value="opaque" />
+  <param name="swfversion" value="6.0.65.0" />
+  <param name="expressinstall" value="Scripts/expressInstall.swf" />
+  <!-- The browser displays the following alternative content for users with Flash Player 6.0 and older. -->
+  <div>
+   <h4>Content on this page requires a newer version of Adobe Flash Player.</h4>
+   <p><a href="http://www.adobe.com/go/getflashplayer"><img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" width="112" height="33" /></a></p>
+  </div>
+  <!--[if !IE]>-->
+ </object>
+  <!--<![endif]-->
+</object>';
+	
+	return $output;
+}
+
+function swf_display_codec_info() {
+  $codecs = array();
+  // You can offer multiple video formats in one module.
+  $codecs['swf'] = array(
+    // Will be used some day in user information.
+    'name' => t('SWF File Display'),
+
+    // The callback that will output the right embed code.
+    'callback' => 'swf_display_swf',
+
+    // Regexp can be an array. $video['codec']['delta'] will be set to the key.
+    'regexp' => '/(.*?)\.swf/',
+
+    // Ratio for resizing within user-given width and height (ratio = width / height)
+    'ratio' => 1 / 1,
+  );
+  return $codecs;
+}
+
+function swf_display_swf($video) {
+  // $video contains the video URL in source, the codec (as above) and also [code][matches] with the result of the regexp and [codec][delta] with the key of the matched regexp.
+  $video['source'] = $GLOBALS['base_path']. $video['codec']['matches'][1]. '.swf';
+  $video['source'] = str_replace('//','/',$video['source']); 
+  // Outputs a general <object...> for embedding flash players. Needs width, height, source and optionally align (left or right) and params (a list of <param...> attributes)
+  return video_filter_flash($video);
+}
+?>
